@@ -55,3 +55,47 @@ def find_absent_streaks(df, threshold=3):
 
 absent_streaks = find_absent_streaks(df)
 print(absent_streaks)
+
+parent_data = {
+    "student_id": [101, 102, 103, 104, 105],
+    "student_name": ["Alice Johnson", "Bob Smith", "Charlie Brown", "David Lee", "Eva White"],
+    "parent_email": ["alice_parent@example.com", "bob_parent@example.com", 
+                     "invalid_email.com", "invalid_email.com", "eva_white@example.com"]
+}
+
+parent_df = pd.DataFrame(parent_data)
+
+merged_df = df.merge(parent_df, on="student_id", how="left")
+
+print(merged_df)
+
+import re
+
+def is_valid_email(email):
+    pattern = r'^[a-zA-Z_][a-zA-Z0-9_.]*@[a-zA-Z]+\.[a-zA-Z]{2,}$'
+    return bool(re.match(pattern, email))
+
+parent_df['is_valid_email'] = parent_df['parent_email'].apply(is_valid_email)
+
+print(parent_df[['student_id', 'student_name', 'parent_email', 'is_valid_email']])
+
+merged_df = df.merge(parent_df, on="student_id", how="left")
+absent_streaks = find_absent_streaks(df)
+final_df = absent_streaks.merge(parent_df, on="student_id", how="left")
+
+def is_valid_email(email):
+    pattern = r'^[a-zA-Z_][a-zA-Z0-9_.]*@[a-zA-Z]+\.[a-zA-Z]{2,}$'
+    return bool(re.match(pattern, email))
+
+final_df['email'] = final_df['parent_email'].apply(lambda x: x if is_valid_email(x) else '')
+
+def generate_message(row):
+    if row['email']:
+        return (f"Dear Parent, your child {row['student_name']} was absent from "
+                f"{row['absence_start_date'].strftime('%Y-%m-%d')} to {row['absence_end_date'].strftime('%Y-%m-%d')} "
+                f"for {row['total_absent_days']} days. Please ensure their attendance improves.")
+    return ''
+
+final_df['msg'] = final_df.apply(generate_message, axis=1)
+output_df = final_df[['student_id', 'student_name', 'email', 'msg']]
+print(output_df)
